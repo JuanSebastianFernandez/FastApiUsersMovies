@@ -1,2 +1,19 @@
 # Ignorando el entorno virtual
 .venv/
+venv/
+.env
+
+# Archivos de caché de Python
+**/__pycache__/
+*.py[cod]
+
+# Archivos de logs
+*.log
+logs/
+
+# Configuraciones de IDEs
+.vscode/
+.idea/
+
+# Dependencias
+node_modules/
