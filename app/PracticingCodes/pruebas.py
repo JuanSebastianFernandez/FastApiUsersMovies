@@ -22,4 +22,10 @@ def search_user_by_id(id:int):
     search_user = next((user for user in users_list if user.id == id), None)
     return search_user or "Not found"
 
-print(search_user_by_id(6))
+def read_items(q:str | None = None):
+    results = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
+    if q:
+        results.update({"q":q})
+    return results
+
+print(read_items({"algo":"cualquier cosa", "otro":"otra cosa"}))

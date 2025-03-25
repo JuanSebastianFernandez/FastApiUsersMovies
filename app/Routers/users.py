@@ -1,6 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Annotated
+
 
 # Instanca de FasAPI
 app = FastAPI()
@@ -26,11 +27,30 @@ users_list = [
 
 # Parametros de query
 @app.get("/users/")
-def read_users(start: int = 0, limit: Optional[int] = None, show_email:bool = False):
+def read_users(
+    start: Annotated[int, 
+                    Query(
+                        ge=0, 
+                        description="Índice de inicio para la paginación", 
+                        title="Indice inicio"
+                        )] = 0, 
+    limit: Annotated[Optional[int], 
+                    Query(
+                        gt=0, 
+                        description="Cantidad máxima de usuarios a devolver", 
+                        title="Inidice Fin"
+                        )] = None, 
+    show_password:Annotated[bool, 
+                            Query(
+                                description="Indica si se debe mostrar el password de los usuarios", 
+                                title="Ver Password",
+                                deprecated=True
+                                )] = False
+    ):
 
-    if not show_email:
+    if not show_password:
         new_list = [{"id": user.id, "name": user.name, 
-                    "password": user.password} for user in users_list][start:limit]
+                    "email": user.email} for user in users_list][start:limit]
         return new_list
     return users_list[start:limit]
 
@@ -69,6 +89,7 @@ async def update_user(user: User):
         return {"message":"User Not Found"}
     users_list[user_exist[0]] = user
     return user
+
     
 
 #-------------------------------------------------- Definición de endpoints delete ----------------------------------------------------
