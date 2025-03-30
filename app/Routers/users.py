@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Query, Path
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Annotated
 
 
@@ -12,6 +12,27 @@ class User(BaseModel):
     name: str
     email: str
     password: str
+
+# Definición de la clase de filtro de parametros
+class UserFilter(BaseModel):
+    start: Optional[int] = Field(
+        default=0, 
+        ge=0, 
+        description="Índice de inicio para la paginación", 
+        title="Indice inicio"
+    )
+    limit: Optional[int] = Field(
+        default=None, 
+        gt=0, 
+        description="Cantidad máxima de usuarios a devolver", 
+        title="Inidice Fin"
+    )
+    show_password: Optional[bool] = Field(
+        default=False, 
+        description="Indica si se debe mostrar el password de los usuarios", 
+        title="Ver Password",
+        deprecated=True
+    )
 
 
 # Base de datos simulada
@@ -27,32 +48,14 @@ users_list = [
 
 # Parametros de query
 @app.get("/users/")
-async def read_users(
-    start: Annotated[int, 
-                    Query(
-                        ge=0, 
-                        description="Índice de inicio para la paginación", 
-                        title="Indice inicio"
-                        )] = 0, 
-    limit: Annotated[Optional[int], 
-                    Query(
-                        gt=0, 
-                        description="Cantidad máxima de usuarios a devolver", 
-                        title="Inidice Fin"
-                        )] = None, 
-    show_password:Annotated[bool, 
-                            Query(
-                                description="Indica si se debe mostrar el password de los usuarios", 
-                                title="Ver Password",
-                                deprecated=True
-                                )] = False
-    ):
+async def read_users(filter_user: Annotated[UserFilter, Query()]):
 
-    if not show_password:
+    if not filter_user.show_password:
         new_list = [{"id": user.id, "name": user.name, 
-                    "email": user.email} for user in users_list][start:limit]
+                    "email": user.email} for user in users_list][filter_user.start:filter_user.limit]
         return new_list
-    return users_list[start:limit]
+    return users_list[filter_user.start:filter_user.limit]
+
 
 # Parametros de ruta
 @app.get("/users/me")
