@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Query, Path, Body
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, Annotated
 
 
@@ -10,7 +10,7 @@ app = FastAPI()
 class User(BaseModel):
     id: int
     name: str
-    email: str
+    email: EmailStr
     password: str
 
 # Definición de la clase de filtro de parametros

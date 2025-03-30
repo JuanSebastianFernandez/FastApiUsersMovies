@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Body, Path
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 from typing import Optional, Annotated
 
 app = FastAPI()
@@ -17,6 +17,7 @@ class Movie(BaseModel):
     directors: list[str]
     languages: set[str] = set()
     imdb: Optional[Imdb] = None
+    poster: HttpUrl | None = None
 
 
 # Base de datos simulada
@@ -31,7 +32,8 @@ movies_list = [
         imdb = {
             "rating": 7.2,
             "votes": 1000
-        }
+        },
+        poster="https://m.media-amazon.com/images/M/MV5BMTQxNzI4ODQ3NF5BMl5BanBnXkFtZTgwNzY5NzMwMjE@._V1_SY1000_SX677_AL_.jpg"
         ),
     Movie(
         id=2, 
@@ -40,7 +42,8 @@ movies_list = [
         year=1927, 
         directors=["Alan Crosland"],
         languages={"English", "Spanish"},
-        imdb=Imdb(rating=7.0, votes=2000)
+        imdb=Imdb(rating=7.0, votes=2000),
+        poster="https://m.media-amazon.com/images/M/MV5BZGEwNTA3MjgtYzE0Mi00MjQ2LThkNjAtYzcyODE3NDBjODIwXkEyXkFqcGdeQXVyNjE5MjUyOTM@._V1_SY1000_SX677_AL_.jpg"
         ),
     Movie(
         id=3, 
@@ -48,7 +51,8 @@ movies_list = [
         plot="Salome, the daughter of Herodias, seduces her step-father/uncle Herod, governor of Judea, with a salacious dance. In return, he promises her the head of the prophet John the Baptist.", 
         year=1922, 
         directors=["Charles Bryant", "Alla Nazimova"],
-        imdb=Imdb(rating=8.8, votes=3500)
+        imdb=Imdb(rating=8.8, votes=3500),
+        poster="https://m.media-amazon.com/images/M/MV5BMjA0MTY4MzI2OV5BMl5BanBnXkFtZTgwNTMyODg5MTE@._V1_SY1000_SX677_AL_.jpg"
         ),
     Movie(
         id=4, 
@@ -56,14 +60,16 @@ movies_list = [
         year=1927, 
         directors=["William A. Wellman", "Harry d'Abbadie d'Arrast"],
         languages={"English", "Spanish", "French"},
-        imdb=Imdb(rating=6.4, votes=2000)
+        imdb=Imdb(rating=6.4, votes=2000),
+        poster = "https://m.media-amazon.com/images/M/MV5BYTI1YjgzZmMtZmIyYy00YTkwLTgyOWEtOTVlNTFkZmMzNTk3XkEyXkFqcGdeQXVyMDI2NDg0NQ@@._V1_SY1000_SX677_AL_.jpg"
         ),
     Movie(
         id=5, 
         title="The Phantom of the Opera", 
         year=1925, 
         directors=["Rupert Julian"],
-        imdb=Imdb(rating=7.3, votes=4500)
+        imdb=Imdb(rating=7.3, votes=4500),
+        poster = "https://m.media-amazon.com/images/M/MV5BMmUzMDFiMjItMDdmMS00MmVlLWEyODAtOTRhODZjZjEyYmM2XkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SY1000_SX677_AL_.jpg"
         ),
     Movie(
         id=6, 
