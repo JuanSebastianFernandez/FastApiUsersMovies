@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Path
 from pydantic import BaseModel
 from typing import Optional, Annotated
 
@@ -27,7 +27,7 @@ users_list = [
 
 # Parametros de query
 @app.get("/users/")
-def read_users(
+async def read_users(
     start: Annotated[int, 
                     Query(
                         ge=0, 
@@ -59,8 +59,17 @@ def read_users(
 async def read_user_me():
     return {"user_id": "the current user"}
 
+
 @app.get("/users/{user_id}")
-async def read_user(user_id: int):
+async def read_user(
+    user_id: Annotated[int, 
+                        Path(
+                            title="El ID del usuario a obtener",
+                            gt=0,
+                            le = len(users_list),
+                            description="El ID del usuario a obtener"
+                            )]
+    ):
 
     #search_user = next((user for user in users_list if user.id == user_id), None) una forma de hacerlo
     user = search_user(user_id)
