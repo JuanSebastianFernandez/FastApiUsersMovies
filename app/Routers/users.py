@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, Path
+from fastapi import FastAPI, Query, Path, Body
 from pydantic import BaseModel, Field
 from typing import Optional, Annotated
 
@@ -93,10 +93,22 @@ async def create_user(user: User):
 
 #-------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
-@app.put("/users/")
-async def update_user(user: User):
+@app.put("/users/{user_id}")
+async def update_user(
+    user_id: Annotated[int, 
+                        Path(
+                            title="El ID del usuario a obtener",
+                            gt=0,
+                            le = len(users_list),
+                            description="El ID del usuario a obtener",
+                            )],
+    user: Annotated[User, 
+                    Body(
+                        embed=True
+                        )]
+    ):
 
-    user_exist = search_user(user.id)
+    user_exist = search_user(user_id)
     if not user_exist:
         return {"message":"User Not Found"}
     users_list[user_exist[0]] = user
