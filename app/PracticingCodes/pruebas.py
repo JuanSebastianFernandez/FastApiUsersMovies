@@ -1,5 +1,7 @@
+from uuid import UUID, uuid4
+
 class User():
-    def __init__(self, id:int, name:str, email:str, password:str):
+    def __init__(self, id:UUID, name:str, email:str, password:str):
         self.id = id
         self.name = name
         self.email = email
@@ -10,11 +12,11 @@ class User():
 
 
 users_list = [
-    User(id=1, name="Juan Perez", email="juan_peres@gmail.com", password="123456"),
-    User(id=2, name="Maria Lopez", email="maria_lopez@gmail.com", password="654312"),
-    User(id=3, name="Carlos Perez", email="CarlosPerez@hotmail.com", password="5478621"),
-    User(id=4, name="Ana Maria", email="Mana@hotmail.com", password="123456"),
-    User(id=5, name="Jose Perez", email="Perezpereza@gmail.com", password="253698")
+    User(id=uuid4(), name="Juan Perez", email="juan_peres@gmail.com", password="123456"),
+    User(id=uuid4(), name="Maria Lopez", email="maria_lopez@gmail.com", password="654312"),
+    User(id=uuid4(), name="Carlos Perez", email="CarlosPerez@hotmail.com", password="5478621"),
+    User(id=uuid4(), name="Ana Maria", email="Mana@hotmail.com", password="123456"),
+    User(id=uuid4(), name="Jose Perez", email="Perezpereza@gmail.com", password="253698")
 ]
 
 
@@ -28,4 +30,5 @@ def read_items(q:str | None = None):
         results.update({"q":q})
     return results
 
-print(read_items({"algo":"cualquier cosa", "otro":"otra cosa"}))
+for user in users_list:
+    print(user)
