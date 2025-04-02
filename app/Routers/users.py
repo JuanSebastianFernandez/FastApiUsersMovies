@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, Path, Body, Response
+from fastapi import FastAPI, Query, Path, Body, Response, status
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, Annotated, Any
 from fastapi.responses import JSONResponse
@@ -51,14 +51,14 @@ users_list = [
 #-------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
 # Parametros de query
-@app.get("/users/")
+@app.get("/users/", response_model=list[UserBase], status_code=status.HTTP_200_OK)
 async def read_users(filter_user: Annotated[UserFilter, Query()]):
-
+    filtered_users = users_list[filter_user.start:filter_user.limit]
     if not filter_user.show_password:
-        new_list = [{"id": user.id, "name": user.name, 
-                    "email": user.email} for user in users_list][filter_user.start:filter_user.limit]
-        return new_list
-    return users_list[filter_user.start:filter_user.limit]
+        return filtered_users
+    return JSONResponse(
+        content=[user.model_dump() for user in filtered_users]
+        )  # No esta generando error por el response_model
 
 
 # Parametros de ruta
@@ -67,7 +67,7 @@ async def read_user_me():
     return {"user_id": "the current user"}
 
 
-@app.get("/users/{user_id}", response_model=None)
+@app.get("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
 async def read_user(
     user_id: Annotated[int, 
                         Path(
@@ -81,7 +81,6 @@ async def read_user(
     if not user:
         return {"message": "User Not Found"}
     return JSONResponse(
-        status_code=200,
         content={
             "message":"User found",
             "user":{
