@@ -3,6 +3,7 @@ from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, Annotated, Any
 from uuid import UUID, uuid4
 from datetime import datetime
+from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
@@ -83,6 +84,11 @@ class Movie(BaseModel):
         }
     }
 
+# Definición de un modelo para los parámetros de cabecera
+class HeaderParams(BaseModel):
+    user_agent: str|None
+    x_token: str|None
+
 
 # Base de datos simulada
 movies_list = [
@@ -153,13 +159,23 @@ movies_list = [
 
 # -------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
-@app.get("/movies/", response_model=None, response_model_exclude_unset=True)
-async def read_movies(x_token: Annotated[str | None, Header()] = None)->dict|list[Movie]:
-    if x_token != "secreto123":
-        return {"message":"Token incorrecto"}
-    return movies_list
+@app.get("/movies/", response_model=None, response_model_exclude_unset=True, status_code=status.HTTP_200_OK)
+async def read_movies(headers: Annotated[HeaderParams, Header()]) -> JSONResponse:
+    if headers.x_token != "secreto123":
+        return JSONResponse(
+            content={
+                "message":"Token incorrecto"
+                }
+            )
+    return JSONResponse(
+        content={
+            "message":"Token válido",
+            "user_agent": headers.user_agent,
+            "Movies":[movie.model_dump(mode="json") for movie in movies_list]
+            }
+        )
 
-# Parametros de cookie
+# Parametros de cookie  
 @app.get("/movies/favorite/", response_model=None, status_code=status.HTTP_200_OK, response_model_exclude_unset=True)
 async def get_favorite_movie(favorite_movie:Annotated[str|None, 
                                                     Cookie(
