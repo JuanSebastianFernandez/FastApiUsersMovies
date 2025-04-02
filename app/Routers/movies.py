@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body, Path
+from fastapi import FastAPI, Body, Path, Response, Cookie, status, Header
 from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, Annotated, Any
 from uuid import UUID, uuid4
@@ -151,10 +151,47 @@ movies_list = [
         )
 ]
 
+# -------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
-@app.get("/movies/", response_model=list[Movie], response_model_exclude_unset=True)
-async def read_movies()->Any:
+@app.get("/movies/", response_model=None, response_model_exclude_unset=True)
+async def read_movies(x_token: Annotated[str | None, Header()] = None)->dict|list[Movie]:
+    if x_token != "secreto123":
+        return {"message":"Token incorrecto"}
     return movies_list
+
+# Parametros de cookie
+@app.get("/movies/favorite/", response_model=None, status_code=status.HTTP_200_OK, response_model_exclude_unset=True)
+async def get_favorite_movie(favorite_movie:Annotated[str|None, 
+                                                    Cookie(
+                                                        title="ID de la película favorita"
+                                                    )
+                                                    ] = None
+    ):
+    if not favorite_movie:
+        return {"message":"No favorite movie set"}
+    movie_exist = search_movie(UUID(favorite_movie))
+    if not movie_exist:
+        return {"message":"Movie Not Found"}
+    return movie_exist[1]
+
+                                                    
+@app.get("/movies/favorite/{movie_id}", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def set_favorite_movie(
+    movie_id:Annotated[UUID,
+                        Path(
+                            title="El ID de la película con like",
+                            description="El ID de la película con like"
+                            )
+                        ], 
+    response:Response #Tiene que estar instanaciado para poder usar set_cookie
+    ):
+    movie_exist = search_movie(movie_id)
+    if not movie_exist:
+        return {"message":"Movie Not Found"}
+    response.set_cookie(key="favorite_movie", value=str(movie_id), expires=60)
+    return {"message":f"Movie {movie_id} set as favorite"}
+
+# -------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
 @app.put("/movies/{movie_id}")
 async def update_movie(
