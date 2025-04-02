@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Body, Path
 from pydantic import BaseModel, HttpUrl, Field
-from typing import Optional, Annotated
+from typing import Optional, Annotated, Any
 from uuid import UUID, uuid4
 from datetime import datetime
 
@@ -152,8 +152,8 @@ movies_list = [
 ]
 
 
-@app.get("/movies/")
-async def read_movies():
+@app.get("/movies/", response_model=list[Movie], response_model_exclude_unset=True)
+async def read_movies()->Any:
     return movies_list
 
 @app.put("/movies/{movie_id}")

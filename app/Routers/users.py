@@ -1,17 +1,21 @@
-from fastapi import FastAPI, Query, Path, Body
+from fastapi import FastAPI, Query, Path, Body, Response
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, Annotated
+from typing import Optional, Annotated, Any
+from fastapi.responses import JSONResponse
 
 
 # Instanca de FasAPI
 app = FastAPI()
 
 # Definición de clase BasemModel User
-class User(BaseModel):
-    id: int
-    name: str
-    email: EmailStr
+class UserBase(BaseModel):
+    id:int
+    name:str
+    email:EmailStr
+class User(UserBase):
     password: str
+
+
 
 # Definición de la clase de filtro de parametros
 class UserFilter(BaseModel):
@@ -63,7 +67,7 @@ async def read_user_me():
     return {"user_id": "the current user"}
 
 
-@app.get("/users/{user_id}")
+@app.get("/users/{user_id}", response_model=None)
 async def read_user(
     user_id: Annotated[int, 
                         Path(
@@ -72,24 +76,53 @@ async def read_user(
                             le = len(users_list),
                             description="El ID del usuario a obtener"
                             )]
-    ):
-
-    #search_user = next((user for user in users_list if user.id == user_id), None) una forma de hacerlo
+    ) -> Response | dict:
     user = search_user(user_id)
     if not user:
         return {"message": "User Not Found"}
-    return user[1]
+    return JSONResponse(
+        status_code=200,
+        content={
+            "message":"User found",
+            "user":{
+                "id":user[1].id,
+                "name":user[1].name,
+                "email":user[1].email
+                    }
+                }
+            )
 
 #-------------------------------------------------- Definición de endpoints post ----------------------------------------------------
 
 @app.post("/users/")
-async def create_user(user: User):
-
+async def create_user(user: User) -> JSONResponse:
     user_exist = search_user(user.id, user.email)
     if not user_exist:
         users_list.append(user)
-        return user
-    return {"message":"User Already Exist", "user": users_list[user_exist[0]]}
+        return JSONResponse(
+            status_code=201,
+            content = {
+                "message":"User Created Successfully",
+                "user": {
+                    "id":user.id,
+                    "name":user.name,
+                    "email":user.email
+                }
+            }
+
+        )
+    return JSONResponse(
+        status_code=400,
+        content = {
+            "message":"User Already Exist", 
+            "user": {
+                "id":user_exist[1].id,
+                "name":user_exist[1].name,
+                "email":user_exist[1].email
+                }
+            }
+        )
+
 
 #-------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
