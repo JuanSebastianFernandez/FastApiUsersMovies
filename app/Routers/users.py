@@ -1,65 +1,29 @@
-from fastapi import FastAPI, Query, Path, Body, Response, status
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, Annotated, Any
-from fastapi.responses import JSONResponse
+import sys
+import os
 
+# Agregar el directorio padre (app) al sys.path sera eliminado cuando se llame como router en el main.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from fastapi import FastAPI, Query, Path, Body, Response, status
+from typing import Annotated
+from fastapi.responses import JSONResponse
+from db.models.users_models import UserIn, UserOut, UserFilter
+from db.data.users_data import USER_LIST as users_list
 
 # Instanca de FasAPI
 app = FastAPI()
 
-# Definición de clase BasemModel User
-class UserBase(BaseModel):
-    id:int
-    name:str
-    email:EmailStr
-class User(UserBase):
-    password: str
-
-
-
-# Definición de la clase de filtro de parametros
-class UserFilter(BaseModel):
-    start: Optional[int] = Field(
-        default=0, 
-        ge=0, 
-        description="Índice de inicio para la paginación", 
-        title="Indice inicio"
-    )
-    limit: Optional[int] = Field(
-        default=None, 
-        gt=0, 
-        description="Cantidad máxima de usuarios a devolver", 
-        title="Inidice Fin"
-    )
-    show_password: Optional[bool] = Field(
-        default=False, 
-        description="Indica si se debe mostrar el password de los usuarios", 
-        title="Ver Password",
-        deprecated=True
-    )
-
-
-# Base de datos simulada
-users_list = [
-    User(id=1, name="Juan Perez", email="juan_peres@gmail.com", password="123456"),
-    User(id=2, name="Maria Lopez", email="maria_lopez@gmail.com", password="654312"),
-    User(id=3, name="Carlos Perez", email="CarlosPerez@hotmail.com", password="5478621"),
-    User(id=4, name="Ana Maria", email="Mana@hotmail.com", password="123456"),
-    User(id=5, name="Jose Perez", email="Perezpereza@gmail.com", password="253698")
-]
-
 #-------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
 # Parametros de query
-@app.get("/users/", response_model=list[UserBase], status_code=status.HTTP_200_OK)
+@app.get("/users/", response_model=list[UserOut], status_code=status.HTTP_200_OK)
 async def read_users(filter_user: Annotated[UserFilter, Query()]):
     filtered_users = users_list[filter_user.start:filter_user.limit]
     if not filter_user.show_password:
         return filtered_users
     return JSONResponse(
         content=[user.model_dump() for user in filtered_users]
-        )  # No esta generando error por el response_model
-
+        ) 
 
 # Parametros de ruta
 @app.get("/users/me")
@@ -69,99 +33,113 @@ async def read_user_me():
 
 @app.get("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
 async def read_user(
-    user_id: Annotated[int, 
+    user_id: Annotated[str, 
                         Path(
                             title="El ID del usuario a obtener",
-                            gt=0,
-                            le = len(users_list),
                             description="El ID del usuario a obtener"
                             )]
-    ) -> Response | dict:
-    user = search_user(user_id)
-    if not user:
-        return {"message": "User Not Found"}
+    ) -> JSONResponse:
+    user_exist = search_user(user_id)
+    if not user_exist:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "message": "User Not Found"
+                }
+            )
     return JSONResponse(
         content={
             "message":"User found",
-            "user":{
-                "id":user[1].id,
-                "name":user[1].name,
-                "email":user[1].email
-                    }
+            "user":UserOut(id=user_exist[1].id, 
+                            name=user_exist[1].name, 
+                            email=user_exist[1].email).model_dump()
                 }
             )
 
 #-------------------------------------------------- Definición de endpoints post ----------------------------------------------------
 
-@app.post("/users/")
-async def create_user(user: User) -> JSONResponse:
+@app.post("/users/", response_model=None, status_code=status.HTTP_201_CREATED)
+async def create_user(user: UserIn) -> JSONResponse:
     user_exist = search_user(user.id, user.email)
     if not user_exist:
         users_list.append(user)
         return JSONResponse(
-            status_code=201,
             content = {
                 "message":"User Created Successfully",
-                "user": {
-                    "id":user.id,
-                    "name":user.name,
-                    "email":user.email
+                "user": UserOut(id=user.id,
+                                name=user.name,
+                                email=user.email).model_dump()    
                 }
-            }
-
-        )
+            )
     return JSONResponse(
-        status_code=400,
+        status_code=status.HTTP_409_CONFLICT,
         content = {
             "message":"User Already Exist", 
-            "user": {
-                "id":user_exist[1].id,
-                "name":user_exist[1].name,
-                "email":user_exist[1].email
-                }
+            "user":UserOut(id=user_exist[1].id, 
+                            name=user_exist[1].name, 
+                            email=user_exist[1].email).model_dump()
             }
         )
-
 
 #-------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
-@app.put("/users/{user_id}")
+@app.put("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
 async def update_user(
-    user_id: Annotated[int, 
+    user_id: Annotated[str, 
                         Path(
                             title="El ID del usuario a obtener",
-                            gt=0,
-                            le = len(users_list),
                             description="El ID del usuario a obtener",
                             )],
-    user: Annotated[User, 
+    user: Annotated[UserIn, 
                     Body(
                         embed=True
                         )]
-    ):
+    ) -> Response:
 
     user_exist = search_user(user_id)
     if not user_exist:
-        return {"message":"User Not Found"}
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "message":"User Not Found"
+                }
+            )
     users_list[user_exist[0]] = user
-    return user
-
-    
+    return JSONResponse(
+        content={
+            "message":"User Updated Successfully",
+            "user": UserOut(id=user.id,
+                            name=user.name,
+                            email=user.email).model_dump()
+            }
+        )
 
 #-------------------------------------------------- Definición de endpoints delete ----------------------------------------------------
 
-@app.delete("/users/{user_id}")
-async def delete_user(user_id:int):
-
+@app.delete("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
+async def delete_user(user_id:str) -> JSONResponse:
     user_exist = search_user(user_id)
     if not user_exist:
-        return {"message":"User Not Found"}
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                "message":"User Not Found"
+                }
+            )
     user_deleted = users_list.pop(user_exist[0])
-    return {"user_deleted":"True", "user":user_deleted}
+    return JSONResponse(
+        content={
+            "message":"User Deleted Successfully",
+            "user_deleted":"True", 
+            "user":UserOut(id=user_deleted.id, 
+                            name=user_deleted.name, 
+                            email=user_deleted.email).model_dump()
+            }
+        )
         
 #---------------------------------------------- Definición de funciones auxiliares -----------------------------------------------
 
-def search_user(id:int, email:str = None):
+def search_user(id:str, email:str = None) -> tuple[int, UserIn]|None:
     for index, search_user in enumerate(users_list):
         if search_user.id == id or search_user.email == email:
             return index, search_user
