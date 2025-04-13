@@ -4,8 +4,8 @@ import os
 # Agregar el directorio padre (app) al sys.path sera eliminado cuando se llame como router en el main.py
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from fastapi import FastAPI, Body, Path, Response, Cookie, status, Header
-from typing import Annotated
+from fastapi import FastAPI, Body, Path, Response, Cookie, status, Header, Depends, HTTPException
+from typing import Annotated, Any
 from uuid import UUID
 from fastapi.responses import JSONResponse
 from db.models.movies_models import Movie, HeaderParams
@@ -13,20 +13,34 @@ from db.data.movies_data import MOVIES_LIST as movies_list
 
 # Instanca de FasAPI
 
-app = FastAPI()
+# app = FastAPI()
 
+#---------------------------------------------- Definición de funciones auxiliares -----------------------------------------------
+
+def search_movie(id:UUID) -> tuple[int, Movie]|None:
+    for index, movie in enumerate(movies_list):
+        if movie.id == id:
+            return index, movie
+    return None
+
+def verify_token(x_token: Annotated[str | None, Header()] = None):
+    if x_token != "secreto123":
+        return False
+    return True
+        
+def view_header_token(headers: Annotated[HeaderParams, Header()],
+                        token: Annotated[bool, Depends(verify_token)]):
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token incorrecto")
+    return headers
+
+app = FastAPI()
 # -------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
 # Parametros de Header
 @app.get("/movies/", response_model=None, response_model_exclude_unset=True, status_code=status.HTTP_200_OK)
-async def read_movies(headers: Annotated[HeaderParams, Header()]) -> JSONResponse:
-    if headers.x_token != "secreto123":
-        return JSONResponse(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            content={
-                "message":"Incorrect Token"
-                }
-            )
+async def read_movies(headers: Annotated[Any, Depends(view_header_token)]) -> JSONResponse:
+    
     return JSONResponse(
         content={
             "message":"Token Correct",
@@ -36,7 +50,7 @@ async def read_movies(headers: Annotated[HeaderParams, Header()]) -> JSONRespons
         )
 
 # Get para establecer cookie
-@app.get("/movies/favorite/{movie_id}", response_model=None, status_code=status.HTTP_201_CREATED)
+@app.get("/movies/favorite/{movie_id}", response_model=None, status_code=status.HTTP_201_CREATED, dependencies=[Depends(view_header_token)])
 async def set_favorite_movie(
     movie_id:Annotated[UUID,
                         Path(
@@ -145,11 +159,3 @@ async def update_movie(
             )
     movies_list[movie_exist[0]] = movie
     return movie
-
-#---------------------------------------------- Definición de funciones auxiliares -----------------------------------------------
-
-def search_movie(id:UUID) -> tuple[int, Movie]|None:
-    for index, movie in enumerate(movies_list):
-        if movie.id == id:
-            return index, movie
-    return None

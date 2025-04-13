@@ -2,23 +2,25 @@ from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 # Definición de clase BasemModel User
-class UserIn(BaseModel):
-    id:str
-    name:str
-    email:EmailStr
+class UserBase(BaseModel):
+    id : str
+    name: str
+    email: EmailStr
+
+class UserIn(UserBase):
     password: str
 
-class UserOut(BaseModel):
-    id:str
-    name:str
-    email:EmailStr
+class UserOut(UserBase):
+    pass
 
-class UserInDB(BaseModel):
-    id:str
-    name:str
-    email:EmailStr
+class UserInDB(UserBase):
     hashed_password: str
 
+class FormData(BaseModel):
+    email: str
+    password: str
+    model_config = {"extra": "forbid"}
+    
 # Definición de la clase de filtro de parametros
 class UserFilter(BaseModel):
     start: Optional[int] = Field(
