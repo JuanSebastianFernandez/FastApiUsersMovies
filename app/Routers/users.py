@@ -9,9 +9,13 @@ from typing import Annotated
 from fastapi.responses import JSONResponse
 from db.models.users_models import UserIn, UserOut, UserFilter, UserInDB, FormData
 from db.data.users_data import USER_LIST as users_list
-from db.data.users_data import hash_password
+from core.security import hash_password
+from oauth2simple import get_current_user
+from core.user_service import search_user, save_user
+
 # Instanca de FasAPI
 app = FastAPI()
+
 
 #-------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
@@ -37,9 +41,9 @@ async def read_users(filter_user: Annotated[UserFilter, Query()]):
         ) 
 
 # Parametros de ruta
-@app.get("/users/me")
-async def read_user_me():
-    return {"user_id": "the current user"}
+# @app.get("/users/me", response_model=UserOut, status_code=status.HTTP_200_OK)
+# async def read_user_me(current_user: Annotated[UserOut, Depends(get_current_user)]):
+#     return current_user
 
 
 @app.get("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
@@ -81,20 +85,19 @@ async def create_user(user: UserIn) -> JSONResponse:
             }
         )
     
-@app.post("/users/login/", response_model=None, status_code=status.HTTP_200_OK)
-async def login_user(data: Annotated[FormData, Form()]):
-    user_exist = search_user(id = None, email = data.email)
-    print(user_exist)
-    if not user_exist:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found")
-    if user_exist[1].hashed_password == hash_password(data.password):
-        return JSONResponse(
-            content={
-                "message":"Login Successfully",
-                "user":UserOut(**user_exist[1].model_dump()).model_dump()
-                }
-            )
-    raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Password Incorrect")
+# @app.post("/users/login/", response_model=None, status_code=status.HTTP_200_OK)
+# async def login_user(data: Annotated[FormData, Form()]):
+#     user_exist = search_user(id = None, email = data.email)
+#     if not user_exist:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found")
+#     if user_exist[1].hashed_password == hash_password(data.password):
+#         return JSONResponse(
+#             content={
+#                 "message":"Login Successfully",
+#                 "user":UserOut(**user_exist[1].model_dump()).model_dump()
+#                 }
+#             )
+#     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Password Incorrect")
 
 #-------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
@@ -160,16 +163,3 @@ async def delete_user(user_id:str) -> JSONResponse:
             }
         )
         
-#---------------------------------------------- Definición de funciones auxiliares -----------------------------------------------
-
-def search_user(id:str, email:str = None) -> tuple[int, UserInDB]|None:
-    for index, search_user in enumerate(users_list):
-        if search_user.id == id or search_user.email == email:
-            return index, search_user
-    return None
-
-def save_user(user_in:UserIn):
-    hashed_password = hash_password(user_in.password)
-    user_in_db = UserInDB(**user_in.model_dump(), hashed_password=hashed_password)
-    
-    return user_in_db

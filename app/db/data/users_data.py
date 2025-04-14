@@ -6,16 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from models.users_models import UserInDB
 from bson import ObjectId
-import hashlib
+from core.security import hash_password
 
-def hash_password(password: str) -> str:
-    # Codificamos la contraseña a bytes
-    password_bytes = password.encode('utf-8')
-    
-    # Usamos SHA-256 para hacer el hash
-    hashed = hashlib.sha256(password_bytes).hexdigest()
-    
-    return hashed
 
 # Base de datos simulada
 USER_LIST = [
