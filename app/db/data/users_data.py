@@ -1,8 +1,13 @@
 import sys
 import os
 
-# Agregar el directorio padre (db) al sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+current_dir = os.path.dirname(__file__)
+parent_dir = os.path.abspath(os.path.join(current_dir, '..'))      # db/
+root_dir   = os.path.abspath(os.path.join(current_dir, '../..'))   # raíz del proyecto
+
+# Agregar ambos
+sys.path.append(parent_dir)
+sys.path.append(root_dir)
 
 from models.users_models import UserInDB
 from bson import ObjectId
