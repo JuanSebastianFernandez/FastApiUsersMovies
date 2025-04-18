@@ -1,5 +1,6 @@
 from app.db.models.movies_models import Movie, Imdb
 from uuid import uuid4
+from datetime import datetime
 
 # Base de datos simulada
 MOVIES_LIST = [

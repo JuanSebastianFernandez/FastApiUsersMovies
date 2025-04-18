@@ -1,38 +1,21 @@
-from fastapi import FastAPI, Body, Path, Response, Cookie, status, Header, Depends, HTTPException
+from fastapi import APIRouter, Body, Path, Response, Cookie, status, Header, Depends, HTTPException
 from typing import Annotated, Any
 from uuid import UUID
 from fastapi.responses import JSONResponse
 from app.db.models.movies_models import Movie, HeaderParams
 from app.db.data.movies_data import MOVIES_LIST as movies_list
+from app.core.movies_service import search_movie
+from app.dependencies import view_header_token
 
-# Instanca de FasAPI
 
-# app = FastAPI()
-
-#---------------------------------------------- Definición de funciones auxiliares -----------------------------------------------
-
-def search_movie(id:UUID) -> tuple[int, Movie]|None:
-    for index, movie in enumerate(movies_list):
-        if movie.id == id:
-            return index, movie
-    return None
-
-def verify_token(x_token: Annotated[str | None, Header()] = None):
-    if x_token != "secreto123":
-        return False
-    return True
-        
-def view_header_token(headers: Annotated[HeaderParams, Header()],
-                        token: Annotated[bool, Depends(verify_token)]):
-    if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token incorrecto")
-    return headers
-
-app = FastAPI()
+router = APIRouter(
+    prefix="/movies",
+    tags=["movies"]
+)
 # -------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
 # Parametros de Header
-@app.get("/movies/", response_model=None, response_model_exclude_unset=True, status_code=status.HTTP_200_OK)
+@router.get("/", response_model=None, response_model_exclude_unset=True, status_code=status.HTTP_200_OK)
 async def read_movies(headers: Annotated[Any, Depends(view_header_token)]) -> JSONResponse:
     
     return JSONResponse(
@@ -44,7 +27,7 @@ async def read_movies(headers: Annotated[Any, Depends(view_header_token)]) -> JS
         )
 
 # Get para establecer cookie
-@app.get("/movies/favorite/{movie_id}", response_model=None, status_code=status.HTTP_201_CREATED, dependencies=[Depends(view_header_token)])
+@router.get("/favorite/{movie_id}", response_model=None, status_code=status.HTTP_201_CREATED, dependencies=[Depends(view_header_token)])
 async def set_favorite_movie(
     movie_id:Annotated[UUID,
                         Path(
@@ -70,7 +53,7 @@ async def set_favorite_movie(
     return response
 
 # Parametros de cookie  
-@app.get("/movies/favorite/", response_model=None, status_code=status.HTTP_200_OK, response_model_exclude_unset=True)
+@router.get("/favorite", response_model=None, status_code=status.HTTP_200_OK, response_model_exclude_unset=True)
 async def get_favorite_movie(favorite_movie:Annotated[str|None, 
                                                     Cookie(
                                                         title="ID de la película favorita"
@@ -97,7 +80,7 @@ async def get_favorite_movie(favorite_movie:Annotated[str|None,
 
 # -------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
-@app.put("/movies/{movie_id}", response_model=Movie, response_model_exclude_unset= True, status_code=status.HTTP_201_CREATED)
+@router.put("/{movie_id}", response_model=Movie, response_model_exclude_unset= True, status_code=status.HTTP_201_CREATED)
 async def update_movie(
     movie_id:Annotated[UUID,
                         Path(
