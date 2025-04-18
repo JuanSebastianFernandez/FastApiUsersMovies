@@ -4,7 +4,7 @@ import os
 # Agregar el directorio padre (app) al sys.path sera eliminado cuando se llame como router en el main.py
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from fastapi import FastAPI, Query, Path, Body, Response, status, Form, HTTPException, Depends
+from fastapi import FastAPI, Query, Path, Body, Response, status, Form, HTTPException, Depends, Request
 from typing import Annotated
 from fastapi.responses import JSONResponse
 from db.models.users_models import UserIn, UserOut, UserFilter, UserInDB, FormData
@@ -12,9 +12,23 @@ from db.data.users_data import USER_LIST as users_list
 from core.security import hash_password
 from oauth2simple import get_current_user
 from core.user_service import search_user, save_user
+import time
 
 # Instanca de FasAPI
 app = FastAPI()
+
+
+#--------------------------------------------------------- Middleware --------------------------------------------------------------
+@app.middleware("http")
+async def add_procces_time_sleep(request: Request, call_next):
+    start_time = time.time()
+    time.sleep(1)
+    response = await call_next(request)
+    time.sleep(1)
+    process_time = time.time() - start_time
+    print(f"Request {request.url} completed in {process_time:.2f} seconds")
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 
 #-------------------------------------------------- Definición de endpoints get ----------------------------------------------------
