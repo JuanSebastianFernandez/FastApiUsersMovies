@@ -1,11 +1,4 @@
-from datetime import datetime
-import sys
-import os
-
-# Agregar el directorio padre (db) al sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from models.movies_models import Movie, Imdb
+from app.db.models.movies_models import Movie, Imdb
 from uuid import uuid4
 
 # Base de datos simulada

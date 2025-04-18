@@ -1,15 +1,9 @@
-import sys
-import os
-
-# Agregar el directorio padre (app) al sys.path sera eliminado cuando se llame como router en el main.py
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from fastapi import FastAPI, Body, Path, Response, Cookie, status, Header, Depends, HTTPException
 from typing import Annotated, Any
 from uuid import UUID
 from fastapi.responses import JSONResponse
-from db.models.movies_models import Movie, HeaderParams
-from db.data.movies_data import MOVIES_LIST as movies_list
+from app.db.models.movies_models import Movie, HeaderParams
+from app.db.data.movies_data import MOVIES_LIST as movies_list
 
 # Instanca de FasAPI
 

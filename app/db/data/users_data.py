@@ -1,17 +1,6 @@
-import sys
-import os
-
-current_dir = os.path.dirname(__file__)
-parent_dir = os.path.abspath(os.path.join(current_dir, '..'))      # db/
-root_dir   = os.path.abspath(os.path.join(current_dir, '../..'))   # raíz del proyecto
-
-# Agregar ambos
-sys.path.append(parent_dir)
-sys.path.append(root_dir)
-
-from models.users_models import UserInDB
+from app.db.models.users_models import UserInDB
 from bson import ObjectId
-from core.security import hash_password
+from app.core.security import hash_password
 
 
 # Base de datos simulada

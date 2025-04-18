@@ -1,10 +1,3 @@
-import sys
-import os
-
-# Agregar el directorio padre (app) al sys.path sera eliminado cuando se llame como router en el main.py
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated

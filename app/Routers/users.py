@@ -1,40 +1,21 @@
-import sys
-import os
-
-# Agregar el directorio padre (app) al sys.path sera eliminado cuando se llame como router en el main.py
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from fastapi import FastAPI, Query, Path, Body, Response, status, Form, HTTPException, Depends, Request
+from fastapi import APIRouter, Query, Path, Body, Response, status, HTTPException, Depends
 from typing import Annotated
 from fastapi.responses import JSONResponse
-from db.models.users_models import UserIn, UserOut, UserFilter, UserInDB, FormData
-from db.data.users_data import USER_LIST as users_list
-from core.security import hash_password
-from oauth2simple import get_current_user
-from core.user_service import search_user, save_user
-import time
+from app.db.models.users_models import UserIn, UserOut, UserFilter
+from app.db.data.users_data import USER_LIST as users_list
+from app.core.user_service import search_user, save_user
+from app.dependencies import get_current_user
 
 # Instanca de FasAPI
-app = FastAPI()
-
-
-#--------------------------------------------------------- Middleware --------------------------------------------------------------
-@app.middleware("http")
-async def add_procces_time_sleep(request: Request, call_next):
-    start_time = time.time()
-    time.sleep(1)
-    response = await call_next(request)
-    time.sleep(1)
-    process_time = time.time() - start_time
-    print(f"Request {request.url} completed in {process_time:.2f} seconds")
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
-
+router = APIRouter(
+    prefix="/users", 
+    tags=["users"]
+)
 
 #-------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
 # Parametros de query
-@app.get("/users/", response_model=list[UserOut], 
+@router.get("/", response_model=list[UserOut], 
             status_code=status.HTTP_200_OK, 
             tags=["Users"], 
             summary="Get all users", 
@@ -54,13 +35,14 @@ async def read_users(filter_user: Annotated[UserFilter, Query()]):
         content=[user.model_dump() for user in filtered_users]
         ) 
 
-# Parametros de ruta
-# @app.get("/users/me", response_model=UserOut, status_code=status.HTTP_200_OK)
-# async def read_user_me(current_user: Annotated[UserOut, Depends(get_current_user)]):
-#     return current_user
+
+@router.get("/me", response_model=UserOut, status_code=status.HTTP_200_OK)
+async def read_user_me(current_user: Annotated[UserOut, Depends(get_current_user)]):
+    return current_user
 
 
-@app.get("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
+
+@router.get("/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
 async def read_user(
     user_id: Annotated[str, 
                         Path(
@@ -80,7 +62,7 @@ async def read_user(
     
 #-------------------------------------------------- Definición de endpoints post ----------------------------------------------------
 
-@app.post("/users/", response_model=None, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=None, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserIn) -> JSONResponse:
     user_exist = search_user(user.id, user.email)
     if not user_exist:
@@ -98,24 +80,10 @@ async def create_user(user: UserIn) -> JSONResponse:
             "user":UserOut(**user.model_dump()).model_dump()
             }
         )
-    
-# @app.post("/users/login/", response_model=None, status_code=status.HTTP_200_OK)
-# async def login_user(data: Annotated[FormData, Form()]):
-#     user_exist = search_user(id = None, email = data.email)
-#     if not user_exist:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User Not Found")
-#     if user_exist[1].hashed_password == hash_password(data.password):
-#         return JSONResponse(
-#             content={
-#                 "message":"Login Successfully",
-#                 "user":UserOut(**user_exist[1].model_dump()).model_dump()
-#                 }
-#             )
-#     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Password Incorrect")
 
 #-------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
-@app.put("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
+@router.put("/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
 async def update_user(
     user_id: Annotated[str, 
                         Path(
@@ -141,7 +109,7 @@ async def update_user(
         )
     
 #-------------------------------------------------- Definición de endpoints patch ----------------------------------------------------
-@app.patch("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
+@router.patch("/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
 async def update_item_user(
     user_id: str, 
     data: Annotated[dict, 
@@ -163,7 +131,7 @@ async def update_item_user(
         )
 #-------------------------------------------------- Definición de endpoints delete ----------------------------------------------------
 
-@app.delete("/users/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
+@router.delete("/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
 async def delete_user(user_id:str) -> JSONResponse:
     user_exist = search_user(user_id)
     if not user_exist:

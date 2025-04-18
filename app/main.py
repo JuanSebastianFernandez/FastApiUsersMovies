@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import time
+from .Routers import users
 
 
 app = FastAPI() 
+app.include_router(users.router)
 
 origins = [
     "http://localhost",
@@ -16,6 +19,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+
+#--------------------------------------------------------- Middleware --------------------------------------------------------------
+@app.middleware("http")
+async def add_procces_time_sleep(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    print(f"Request {request.url} completed in {process_time:.2f} seconds")
+    response.headers["X-Process-Time"] = str(process_time)
+    return response
 
 @app.get("/") 
 def read_root():
