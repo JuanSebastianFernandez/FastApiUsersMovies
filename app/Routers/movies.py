@@ -10,7 +10,7 @@ from app.dependencies import view_header_token
 
 router = APIRouter(
     prefix="/movies",
-    tags=["movies"]
+    tags=["Movies"]
 )
 # -------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 

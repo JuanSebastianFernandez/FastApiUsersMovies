@@ -1,12 +1,16 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import time
-from .Routers import users, movies
+from .Routers import users, movies, jwtoauth2
 
 
-app = FastAPI() 
+app = FastAPI(title="FastAPI - Movies API",
+            description="API para gestionar una base de datos de películas",
+            version="1.0.0",
+            ) 
 app.include_router(users.router)
 app.include_router(movies.router)
+app.include_router(jwtoauth2.router)
 #--------------------------------------------------------- CORS --------------------------------------------------------------
 
 origins = [

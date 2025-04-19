@@ -9,7 +9,7 @@ from app.dependencies import get_current_user
 # Instanca de FasAPI
 router = APIRouter(
     prefix="/users", 
-    tags=["users"]
+    tags=["Users"]
 )
 
 #-------------------------------------------------- Definición de endpoints get ----------------------------------------------------
