@@ -1,16 +1,29 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import time
 from .Routers import users, movies, jwtoauth2
 
 
 app = FastAPI(title="FastAPI - Movies API",
             description="API para gestionar una base de datos de películas",
+            summary="API para gestionar una base de datos de películas, permitiendo usuarios e interacción con la base de datos.",
             version="1.0.0",
+            contact={
+                "name": "Juan Sebastian Fernandez", 
+                "email": "juansf_b@hotmail.com"
+            },
+            license_info={
+                "name": "Apache 2.0",
+                "identifier": "MIT"
+            },
+            docs_url="/documentation",
+            redoc_url=None
             ) 
 app.include_router(users.router)
 app.include_router(movies.router)
 app.include_router(jwtoauth2.router)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 #--------------------------------------------------------- CORS --------------------------------------------------------------
 
 origins = [

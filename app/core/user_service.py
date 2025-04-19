@@ -15,6 +15,11 @@ def save_user(user_in:UserIn):
     
     return user_in_db
 
+def write_notification(email: str, message=""):
+    with open("log.txt", mode="w") as email_file:
+        content = f"notification for {email}: {message}"
+        email_file.write(content)
+        
 if __name__ == "__main__":
     # How testing from cmd or powershell / bash from root -> python -m app.core.user_service
     print("Testing search_user:")

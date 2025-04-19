@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Query, Path, Body, Response, status, HTTPException, Depends
+from fastapi import APIRouter, Query, Path, Body, Response, status, HTTPException, Depends, BackgroundTasks
 from typing import Annotated
 from fastapi.responses import JSONResponse
 from app.db.models.users_models import UserIn, UserOut, UserFilter
 from app.db.data.users_data import USER_LIST as users_list
-from app.core.user_service import search_user, save_user
+from app.core.user_service import search_user, save_user, write_notification
 from app.dependencies import get_current_user
 
 # Instanca de FasAPI
@@ -81,6 +81,19 @@ async def create_user(user: UserIn) -> JSONResponse:
             }
         )
 
+@router.post("/notification/{email}", response_model=None, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_user)])
+async def create_notification(email: str, backgroundtask: BackgroundTasks) -> JSONResponse:
+    """
+    Enviar una notificación al usuario por correo electrónico.
+    - **email**: Correo electrónico del usuario.
+    """
+    backgroundtask.add_task(write_notification, email=email, message="Notification sent")
+    return JSONResponse(
+        content={
+            "message":"Notification sent",
+            "email":email
+            }
+        )
 #-------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
 @router.put("/{user_id}", response_model=None, status_code=status.HTTP_200_OK)
