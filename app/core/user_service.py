@@ -1,17 +1,23 @@
 from app.db.models.users_models import UserIn, UserInDB
-from app.db.data.users_data import USER_LIST as users_list
-from app.db.data.users_data import hash_password
+from app.core.security import hash_password
+from sqlmodel import Session, select
+
 #---------------------------------------------- Definición de funciones auxiliares -----------------------------------------------
 
-def search_user(id:str|None, email:str = None) -> tuple[int, UserInDB]|None:
-    for index, search_user in enumerate(users_list):
-        if search_user.id == id or search_user.email == email:
-            return index, search_user
-    return None
+def search_user(session: Session, id:int|None, email:str = None) ->  UserInDB|None:
+
+    if id is not None:
+        return session.get(UserInDB, id)
+    
+    if email is not None:
+        statement = select(UserInDB).where(UserInDB.email == email)
+        return session.exec(statement).first()
+    
+    return None  # Si no se pasa ni id ni email
 
 def save_user(user_in:UserIn):
-    hashed_password = hash_password(user_in.password)
-    user_in_db = UserInDB(**user_in.model_dump(), hashed_password=hashed_password)
+    user_in.password = hash_password(user_in.password)
+    user_in_db = UserInDB(**user_in.model_dump())
     
     return user_in_db
 

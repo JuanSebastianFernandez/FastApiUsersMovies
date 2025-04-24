@@ -1,6 +1,7 @@
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 import jwt
+from app.core.logger import logger
 
 ALGORITHM = "HS256"
 SECRET_KEY = "b45837f062e096e742cffd60176d1eaf08b8b3b1b4347c6c774e4453a424d723" # Generado con gitbash $ openssl rand -hex 32, se podría guardar en memoria del pc para no dejaro en crudo en el código
@@ -28,7 +29,14 @@ def create_acces_token(data:dict, expires_delta: timedelta | None = None):
     return encode_jwt
 
 def decode_acces_token(token: str):
-    return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    logger.info(f"Token {type(token)} recibido: {token}")
+    try:
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        logger.info(f"Token decodificado correctamente: {decoded}")
+        return decoded
+    except Exception as e:
+        logger.error(f"Fallo al decodificar token: {e}")
+        raise
 
 
 if __name__ == "__main__":
