@@ -8,7 +8,7 @@ from app.core.logger import logger
 def search_movie(field:str, key):
     try:
         logger.info(f"Search movie by {field}:{key}")
-        movie = db_client.local.movies.find_one({field: key})
+        movie = db_client.movies.find_one({field: key})
         logger.info(f"Movie found {movie}")
         return movie
     except:
