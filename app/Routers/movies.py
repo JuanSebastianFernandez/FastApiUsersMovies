@@ -6,6 +6,9 @@ from app.db.models.movies_models import Movie, HeaderParams
 from app.db.data.movies_data import MOVIES_LIST as movies_list
 from app.core.movies_service import search_movie
 from app.dependencies import view_header_token
+from app.db.moviesnosql import db_client
+from app.core.logger import logger
+from bson import ObjectId
 
 
 router = APIRouter(
@@ -15,21 +18,23 @@ router = APIRouter(
 # -------------------------------------------------- Definición de endpoints get ----------------------------------------------------
 
 # Parametros de Header
-@router.get("/", response_model=None, response_model_exclude_unset=True, status_code=status.HTTP_200_OK)
+@router.get("/", response_model=list[Movie], response_model_exclude_unset=True, status_code=status.HTTP_200_OK)
 async def read_movies(headers: Annotated[Any, Depends(view_header_token)]) -> JSONResponse:
     
+    movies_list = list(db_client.movies.find())
+    if not movies_list:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No movies found")
     return JSONResponse(
         content={
-            "message":"Token Correct",
-            "user_agent": headers.user_agent,
-            "Movies":[movie.model_dump(mode="json", exclude_unset=True) for movie in movies_list]
-            }
-        )
+            "message":"Movies found",
+            "movies": [Movie(**movie, id=str(movie["_id"])).model_dump(mode="json", exclude_unset=True) for movie in movies_list]
+        }
+    )
 
 # Get para establecer cookie
 @router.get("/favorite/{movie_id}", response_model=None, status_code=status.HTTP_201_CREATED, dependencies=[Depends(view_header_token)])
 async def set_favorite_movie(
-    movie_id:Annotated[UUID,
+    movie_id:Annotated[str,
                         Path(
                             title="El ID de la película con like",
                             description="El ID de la película con like"
@@ -41,7 +46,17 @@ async def set_favorite_movie(
             "message":f"Movie {movie_id} set as favorite"
             }
         )
-    movie_exist = search_movie(movie_id)
+    try:
+        movie_exist = search_movie("_id", ObjectId(movie_id))
+    except Exception as e:
+        logger.error(f"Error searching movie: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "message":"Internal Server Error, validate ID format"
+
+                }
+            )
     if not movie_exist:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -67,7 +82,17 @@ async def get_favorite_movie(favorite_movie:Annotated[str|None,
                 "message":"No favorite movie set"
                 }
             )
-    movie_exist = search_movie(UUID(favorite_movie))
+    try:
+        movie_exist = search_movie("_id", ObjectId(favorite_movie))
+    except Exception as e:
+        logger.error(f"Error searching movie: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "message":"Internal Server Error, validate ID format"
+
+                }
+            )
     if not movie_exist:
         return JSONResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -76,13 +101,35 @@ async def get_favorite_movie(favorite_movie:Annotated[str|None,
                 }
             )
     return {"message":"Movie Founded",
-            "movie":movie_exist[1]}
+            "movie":Movie(**movie_exist, id=str(movie_exist["_id"])).model_dump(mode="json", exclude_unset=True)}
 
+# -------------------------------------------------- Definición de endpoints post ----------------------------------------------------
+@router.post("/", response_model=Movie, response_model_exclude_unset=True, status_code=status.HTTP_201_CREATED)
+async def create_movie(movie: Movie):
+    movie_db = movie.model_dump(mode="json", exclude_unset=True)
+    logger.info(f"Title: {movie_db["title"]}")
+    founded_movie = search_movie("title", movie_db["title"])
+    logger.info(f"Movie founded {founded_movie}")
+    if founded_movie:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "message":"Movie already exist",
+                "movie": Movie(**founded_movie, id=str(founded_movie["_id"])).model_dump(mode="json", exclude_unset=True)
+
+            }
+        )
+    del movie_db["id"]
+    id = db_client.movies.insert_one(movie_db).inserted_id
+
+    movie_inserted = db_client.movies.find_one({"_id":id})
+
+    return Movie(**movie_inserted, id=str(id))
 # -------------------------------------------------- Definición de endpoints put ----------------------------------------------------
 
 @router.put("/{movie_id}", response_model=Movie, response_model_exclude_unset= True, status_code=status.HTTP_201_CREATED)
 async def update_movie(
-    movie_id:Annotated[UUID,
+    movie_id:Annotated[str,
                         Path(
                             title="El ID de la película a obtener",
                             description="El ID de la película a obtener"
@@ -126,13 +173,36 @@ async def update_movie(
                         )
                     ]
     ) -> JSONResponse:
-    movie_exist = search_movie(movie_id)
-    if not movie_exist:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={
-                "message":"Movie Not Found"
-                }
-            )
-    movies_list[movie_exist[0]] = movie
-    return movie
+    try:
+        movie_db = movie.model_dump(mode="json", exclude_unset=True)
+        del movie_db["id"]
+        updated_movie = db_client.movies.find_one_and_update(
+            {"_id": ObjectId(movie_id)}, 
+            {"$set": movie_db},
+            return_document=True  # Para devolver el documento actualizado
+        )
+        if updated_movie:
+            updated_movie["id"] = str(updated_movie["_id"])
+            del updated_movie["_id"]
+            return Movie(**updated_movie)
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID")
+
+# -------------------------------------------------- Definición de endpoints delete ----------------------------------------------------
+@router.delete("/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_movie(
+    movie_id: Annotated[str, Path(
+        title="El ID de la película a eliminar",
+        description="El ID de la película a eliminar"
+    )]
+):
+    try:
+        deleted_movie = db_client.movies.find_one_and_delete({"_id": ObjectId(movie_id)})
+        if deleted_movie:
+            return  # <-- simplemente no retornas nada
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Movie not found")
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID")
