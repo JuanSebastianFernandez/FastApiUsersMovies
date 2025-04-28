@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import time
-from .Routers import users, movies, jwtoauth2
+from app.Routers import users, movies, jwtoauth2
 import uvicorn
 
 app = FastAPI(title="FastAPI - Movies API",
